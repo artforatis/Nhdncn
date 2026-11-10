@@ -1,0 +1,46 @@
+name: Scan Elysium wallets
+
+on:
+  workflow_dispatch:
+    inputs:
+      to_block:
+        description: "Snapshot block (leave empty for the latest block)"
+        required: false
+        default: ""
+      min_tx:
+        description: "Minimum transactions"
+        required: false
+        default: "3"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "scan-elysium"
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Scan
+        env:
+          TO_BLOCK: ${{ github.event.inputs.to_block }}
+          MIN_TX: ${{ github.event.inputs.min_tx }}
+          OUT: elysium
+        run: node tools/scan.js
+      - name: Save results
+        if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add elysium || true
+          git commit -m "Elysium wallet scan" || echo "nothing to commit"
+          git push || echo "push failed"
