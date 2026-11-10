@@ -1,0 +1,40 @@
+{
+ "network": "Elysium mainnet",
+ "snapshotBlock": 4231574,
+ "minTx": 3,
+ "shardsMerged": 20,
+ "eligibleWallets": 124349,
+ "allSendingWallets": 210370,
+ "countedTransactions": 10159175,
+ "distribution": [
+  {
+   "range": "3-4",
+   "wallets": 27721
+  },
+  {
+   "range": "5-9",
+   "wallets": 42122
+  },
+  {
+   "range": "10-19",
+   "wallets": 23397
+  },
+  {
+   "range": "20-49",
+   "wallets": 18352
+  },
+  {
+   "range": "50-99",
+   "wallets": 6111
+  },
+  {
+   "range": "100-499",
+   "wallets": 5401
+  },
+  {
+   "range": "500+",
+   "wallets": 1245
+  }
+ ],
+ "finishedAt": "2026-11-10T20:01:07.345Z"
+}
