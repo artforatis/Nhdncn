@@ -17,30 +17,74 @@ permissions:
 
 concurrency:
   group: "scan-elysium"
-  cancel-in-progress: false
+  cancel-in-progress: true
+
+env:
+  RPCS: "https://rpc.elysium.kinetiq.xyz,${{ secrets.ALCHEMY_RPC }}"
 
 jobs:
-  scan:
+  prep:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    outputs:
+      target: ${{ steps.t.outputs.target }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Scan
+      - id: t
         env:
           TO_BLOCK: ${{ github.event.inputs.to_block }}
+        run: node tools/scan.js target
+
+  scan:
+    needs: prep
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Scan part ${{ matrix.shard }}
+        env:
+          TARGET: ${{ needs.prep.outputs.target }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: "20"
+          OUT: out
+        run: node tools/scan.js shard
+      - uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.shard }}
+          path: out/part-${{ matrix.shard }}.txt
+          retention-days: 3
+
+  merge:
+    needs: [prep, scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/download-artifact@v4
+        with:
+          path: parts
+      - name: Merge
+        env:
+          TARGET: ${{ needs.prep.outputs.target }}
           MIN_TX: ${{ github.event.inputs.min_tx }}
+          PARTS: parts
           OUT: elysium
-        run: node tools/scan.js
+        run: node tools/scan.js merge
       - name: Save results
-        if: always()
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
-          git add elysium || true
+          git add elysium
           git commit -m "Elysium wallet scan" || echo "nothing to commit"
-          git push || echo "push failed"
+          git push
